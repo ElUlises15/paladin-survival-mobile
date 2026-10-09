@@ -45,12 +45,12 @@ export const CONFIG = deepFreeze({
 
   progression: {
     // xpToNext(level) = round(xpBase * xpGrowth^(level - 1))
-    xpBase: 20,
-    xpGrowth: 3,
+    xpBase: 18,
+    xpGrowth: 1.22,           // curva suave: un nivel cada ~20 s hasta el minuto 10 (medido con tools/balance-sim.mjs)
     // Mejora pasiva por nivel: fracción del valor BASE sumada a cada stat (todos los stats).
-    passivePerLevel: { maxHp: 0.005, attack: 0.005, defense: 0.005, speed: 0.005, attackSpeed: 0.005 },
+    passivePerLevel: { maxHp: 0.025, attack: 0.022, defense: 0.025, speed: 0.005, attackSpeed: 0.016 },
     // Punto manual: fracción del valor BASE sumada al stat elegido (claramente mayor que la pasiva).
-    manualPerPoint: { maxHp: 0.10, attack: 0.08, defense: 0.12, speed: 0.05, attackSpeed: 0.07 },
+    manualPerPoint: { maxHp: 0.15, attack: 0.12, defense: 0.15, speed: 0.05, attackSpeed: 0.09 },
     pointsPerLevel: 1,
     levelUpHealFraction: 0.2, // fracción de maxHp curada al subir de nivel (sostenibilidad sin regeneración)
     attributeLabels: {
@@ -107,8 +107,8 @@ export const CONFIG = deepFreeze({
     },
     // Escalado individual (moderado). Nivel de referencia = nivel actual del jugador.
     scaling: {
-      hpPerLevel: 0.025,
-      damagePerLevel: 0.02,
+      hpPerLevel: 0.01,       // se sube de nivel mucho más rápido: escalado por nivel más suave
+      damagePerLevel: 0.012,
       speedPerWave: 0.005,
       speedMaxMult: 1.25,
     },
@@ -118,11 +118,11 @@ export const CONFIG = deepFreeze({
 
   waves: {
     baseCount: 5,             // enemigos_oleada = round(baseCount * growth^(wave - 1))
-    growth: 1.5,
-    spawnDuration: 42,        // los spawns de una oleada se reparten en este tiempo (s)
-    waveDuration: 45,         // la siguiente oleada empieza a este tiempo (o antes si se limpió)
+    growth: 1.35,             // pocos al principio, muchísimos después (oleadas más cortas → aceleración)
+    spawnDuration: 28,        // los spawns de una oleada se reparten en este tiempo (s)
+    waveDuration: 30,         // la siguiente oleada empieza a este tiempo (o antes si se limpió)
     clearedDelay: 3,          // si la oleada se limpia antes, esperar esto antes de la siguiente
-    maxSimultaneous: 80,      // límite técnico de enemigos vivos; el excedente queda en cola
+    maxSimultaneous: 120,     // límite técnico de enemigos vivos; el excedente queda en cola
   },
 
   score: {

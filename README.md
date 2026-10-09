@@ -5,8 +5,9 @@ No hay victoria: el objetivo es entrar al **Top 10** local. Corre directo en el 
 
 **Jugar:** https://elulises15.github.io/paladin-survival-mobile/
 
-Es la v0.1 del juego (con los ajustes de balance de Ulises: `progression.xpGrowth = 3`, `waves.growth = 1.5`)
-adaptada para celular y tablet. En la compu se sigue jugando igual que siempre, con teclado y mouse.
+Es la v0.1 del juego adaptada para celular y tablet, con el balance "power fantasy" aprobado por Ulises:
+subís de nivel mucho más seguido (el primero a los ~20-25 s, después uno cada ~20 s), los primeros
+30-60 s son tranquilos y la horda crece rápido hasta un tope de 120 enemigos en pantalla. En la compu se sigue jugando igual que siempre, con teclado y mouse.
 
 ## En el celu
 
@@ -59,4 +60,5 @@ Parámetros útiles: `?mobile` / `?desktop` fuerzan el layout, `?nosw` no regist
 - `src/ui/mobile.js`: canvas a pantalla completa con `devicePixelRatio` (tope 2), cámara y safe-area.
 - `sw.js` + `manifest.webmanifest`: PWA liviana. Para publicar cambios, subí `CACHE_VERSION` en `sw.js`
   (si no, quien ya lo abrió sigue viendo la versión cacheada).
-- La simulación (`src/sim`) y el balance (`src/config.js`) son los de la v0.1 + ajustes; no se tocaron reglas.
+- La simulación (`src/sim`) es la de la v0.1; no se tocaron reglas. El balance vive en `src/config.js`
+  (XP: `xpBase 18`, `xpGrowth 1.22`; oleadas: `growth 1.35`, cada 30 s, tope `maxSimultaneous 120`).

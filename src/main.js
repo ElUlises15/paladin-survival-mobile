@@ -373,6 +373,9 @@ if (params.has('debug')) {
     value: Object.freeze({
       levelUp() { const g = app.game; if (g && g.mode === 'playing') { g.player.xp = g.player.xpToNext; return true; } return false; },
       nearDeath() { const g = app.game; if (g && g.mode === 'playing') { g.player.hp = 0.01; return true; } return false; },
+      // Solo para QA/perf: encola n enemigos extra (respetan el tope de simultáneos) y cura al paladín.
+      horde(n = 120) { const g = app.game; if (g && g.mode === 'playing') { g.spawnQueue += Math.max(0, n | 0); return true; } return false; },
+      heal() { const g = app.game; if (g && g.mode === 'playing') { g.player.hp = g.player.maxHp; return true; } return false; },
     }),
   });
 }
