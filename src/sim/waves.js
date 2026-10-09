@@ -1,10 +1,25 @@
 // Oleadas: cantidad, programación uniforme de spawns, cap simultáneo con cola y avance.
 import { pickEnemyType, spawnEnemy } from './enemies.js';
 
-/** round(baseCount * growth^(wave-1)) */
+/** round((baseCount + linearIncrement*(wave-1)) * growth^(wave-1)). Con growth = 1 es lineal. */
 export function waveEnemyCount(wave, config) {
   const wc = config.waves;
-  return Math.max(0, Math.round(wc.baseCount * Math.pow(wc.growth, wave - 1)));
+  const n = Math.max(1, wave) - 1;
+  const linear = wc.baseCount + (Number(wc.linearIncrement) || 0) * n;
+  const growth = wc.growth === undefined ? 1 : wc.growth;
+  return Math.max(0, Math.round(linear * Math.pow(growth, n)));
+}
+
+/** Suma a la cola respetando waves.maxQueue; lo que no entra se descarta y se cuenta en stats.dropped. */
+export function enqueueSpawns(state, n, config) {
+  if (!(n > 0)) return 0;
+  const max = config.waves.maxQueue;
+  let add = n;
+  if (Number.isFinite(max) && max >= 0) add = Math.max(0, Math.min(n, max - state.spawnQueue));
+  state.spawnQueue += add;
+  state.stats.totalScheduled += add;
+  if (add < n) state.stats.dropped = (state.stats.dropped || 0) + (n - add);
+  return add;
 }
 
 export function createWaveState(number, config) {
@@ -34,12 +49,9 @@ function announce(state) {
 
 export function startNextWave(state, config) {
   const old = state.wave;
-  // Lo que la oleada anterior no llegó a programar pasa a la cola: nunca se pierde.
+  // Lo que la oleada anterior no llegó a programar pasa a la cola (hasta waves.maxQueue).
   const leftover = old.total - old.scheduled;
-  if (leftover > 0) {
-    state.spawnQueue += leftover;
-    state.stats.totalScheduled += leftover;
-  }
+  if (leftover > 0) enqueueSpawns(state, leftover, config);
   state.wave = createWaveState(old.number + 1, config);
   announce(state);
 }
@@ -58,9 +70,7 @@ export function updateWaves(state, dt, config) {
   w.timer += dt;
   const target = scheduledTarget(w.total, w.timer, config);
   if (target > w.scheduled) {
-    const add = target - w.scheduled;
-    state.spawnQueue += add;
-    state.stats.totalScheduled += add;
+    enqueueSpawns(state, target - w.scheduled, config);
     w.scheduled = target;
   }
   drainSpawnQueue(state, config);

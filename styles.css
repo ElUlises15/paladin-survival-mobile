@@ -430,6 +430,36 @@ button, input { font: inherit; }
 .ability-slot { flex: 1 1 0; color: #5a4e5e; border-style: dashed; }
 .ability-slot .lock { color: #5a4e5e; }
 .ability-slot .slot-label { color: #6e6272; }
+.ability-slot--spin { gap: 6px; padding: 6px 10px; }
+.ability-slot--spin .cooldown { width: 96px; height: 96px; }
+.ability-slot--spin.is-locked .cooldown { opacity: 0.45; }
+.ability-slot--spin.is-locked .cooldown-text { font-size: 16px; color: #8c8090; }
+.ability-slot--spin:not(.is-locked) { color: var(--text); border-style: solid; border-color: var(--gold-dim); }
+.ability-slot--spin:not(.is-locked) .slot-label { color: var(--gold); }
+.spin-slot-rank { font-family: var(--font-mono); font-size: 14px; color: var(--arcade); }
+
+/* Aviso breve (desbloqueo / mejora de habilidad) */
+.toast {
+  position: absolute;
+  left: 50%; top: 22%;
+  transform: translateX(-50%);
+  max-width: min(92%, 760px);
+  padding: 12px 22px;
+  font-family: var(--font-title);
+  font-size: 30px;
+  text-align: center;
+  color: #fff3c4;
+  background: rgba(14, 10, 20, 0.88);
+  border: 2px solid var(--gold);
+  border-radius: 10px;
+  box-shadow: 0 0 24px rgba(232, 192, 101, 0.45);
+  z-index: 8;
+  pointer-events: none;
+}
+.toast:not([hidden]) { animation: toast-life 3.6s ease forwards; }
+.toast small { display: block; font-family: var(--font-ui); font-size: 0.6em; color: var(--text); margin-top: 4px; }
+@keyframes toast-life { 0% { opacity: 0; transform: translate(-50%, -10px); } 8% { opacity: 1; transform: translate(-50%, 0); } 85% { opacity: 1; } 100% { opacity: 0; } }
+html.is-mobile .toast { top: calc(env(safe-area-inset-top, 0px) + 72px); font-size: 18px; padding: 8px 14px; max-width: calc(100% - 24px); }
 
 #diagnostics {
   position: absolute;
@@ -553,6 +583,42 @@ html.is-mobile.is-touch.in-game #touch-ui {
   touch-action: none;
 }
 .touch-btn--attack.is-pressed { transform: scale(0.94); border-color: var(--gold); box-shadow: 0 0 18px rgba(232, 192, 101, 0.6); }
+.touch-btn[hidden] { display: none; }
+/* Botón de Giro: arriba del de espada; barrido de recarga con conic-gradient (--cd = fracción que falta). */
+.touch-btn--spin {
+  position: absolute;
+  right: calc(env(safe-area-inset-right, 0px) + 39px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 148px);
+  width: 70px; height: 70px;
+  --cd: 0;
+  border-color: var(--gold);
+  background: radial-gradient(circle at 40% 35%, rgba(70, 60, 120, 0.95), rgba(20, 16, 40, 0.92));
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.45), 0 0 14px rgba(232, 192, 101, 0.45);
+  pointer-events: auto;
+  touch-action: none;
+  overflow: visible;
+}
+.touch-btn--spin .spin-cd {
+  position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: conic-gradient(rgba(0, 0, 0, 0.68) calc(var(--cd) * 360deg), transparent 0);
+}
+/* En vertical, arriba de la espada está la tarjeta del arma: el Giro va a la izquierda de la espada. */
+html.is-mobile.is-portrait .touch-btn--spin {
+  right: calc(env(safe-area-inset-right, 0px) + 132px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 51px);
+}
+.touch-btn--spin.is-cooling { border-color: var(--border); box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.45); }
+.touch-btn--spin.is-pressed { transform: scale(0.94); }
+.touch-btn--spin svg { position: relative; }
+.spin-rank {
+  position: absolute; right: -4px; top: -4px;
+  min-width: 22px; height: 22px; padding: 0 5px;
+  border-radius: 11px;
+  font: bold 13px/22px var(--font-mono);
+  color: #1a1206; background: var(--gold);
+  border: 1px solid #fff3c4;
+  text-align: center;
+}
 .touch-btn--small { width: 44px; height: 44px; border-radius: 10px; }
 .touch-btn--small:active { border-color: var(--gold); }
 #btn-touch-mute .ico-muted { display: none; }

@@ -9,6 +9,7 @@ import { updateEnemies } from './enemies.js';
 import { createWaveState, updateWaves, waveEnemyCount } from './waves.js';
 import { scoreKill, updateTimeScore } from './score.js';
 import { addEffect, updateEffects } from './effects.js';
+import { createSpin, syncSpin, updateSpin } from './spin.js';
 
 export { xpToNext, waveEnemyCount, computeDamageTaken };
 export { computeStat, grantXp, recomputePlayerStats } from './player.js';
@@ -16,6 +17,8 @@ export { swordTierForKills, isInSwordArc, recomputeSword } from './combat.js';
 export { makeEnemy, spawnEnemy, pickEnemyType, spawnWeight, enemyHpMult, enemyDamageMult, enemySpeedMult } from './enemies.js';
 export { createWaveState, startNextWave, scheduledTarget } from './waves.js';
 export { killPoints, timeActivityMult } from './score.js';
+export { spinRankForLevel, spinStats, isInSpinRadius, canSpin, syncSpin } from './spin.js';
+export { enqueueSpawns } from './waves.js';
 
 export const MAX_STEP = 1 / 60;
 const DEFAULT_SEED = 0x5eed1234;
@@ -34,15 +37,17 @@ export function createGame(config = CONFIG, { seed } = {}) {
     nextEnemyId: 1,
     player: createPlayer(config),
     sword: createSword(config),
+    spin: createSpin(),
     enemies: [],
     wave: null,
     spawnQueue: 0,
     effects: [],
     events: [],
-    stats: { maxAlive: 0, totalSpawned: 0, totalScheduled: 0 },
+    stats: { maxAlive: 0, totalSpawned: 0, totalScheduled: 0, dropped: 0 },
   };
   state.wave = createWaveState(1, config);
   recomputeSword(state, config);
+  syncSpin(state, config);
   return state;
 }
 
@@ -79,6 +84,7 @@ function step(state, dt, input, config) {
   // Coherencia aunque kills/xp se hayan asignado desde fuera (tests, herramientas de QA).
   syncSwordTier(state, config);
   if (grantXp(state, 0, config) > 0) recomputeSword(state, config);
+  syncSpin(state, config);
   if (state.mode !== 'playing') return;
   state.time += dt;
   const p = state.player;
@@ -86,8 +92,10 @@ function step(state, dt, input, config) {
   updateFacing(p, input, state.enemies);
   movePlayer(p, input, dt, config);
 
+  updateSpin(state, input, dt, config);
   updateSword(state, input, dt, config);
   processDeaths(state, config);
+  syncSpin(state, config);
   if (state.mode !== 'playing') { updateEffects(state, dt); return; } // levelup pausa el resto del paso
 
   updateWaves(state, dt, config);
@@ -123,6 +131,7 @@ export function chooseAttribute(state, key, config = CONFIG) {
   p.pendingPoints -= 1;
   recomputePlayerStats(p, config);
   recomputeSword(state, config);
+  syncSpin(state, config);
   if (p.pendingPoints <= 0) {
     p.pendingPoints = 0;
     state.mode = 'playing';
@@ -173,8 +182,14 @@ export function getDiagnostics(state) {
       cooldown: s.cooldown, cooldownTimer: s.cooldownTimer, swingTimer: s.swingTimer,
       swingDuration: s.swingDuration, swingAngle: s.swingAngle, swingId: s.swingId, hitIds: s.hitIds.slice(),
     },
+    spin: state.spin ? {
+      rank: state.spin.rank, radius: state.spin.radius, damage: state.spin.damage,
+      cooldown: state.spin.cooldown, cooldownTimer: state.spin.cooldownTimer, timer: state.spin.timer,
+      duration: state.spin.duration, swept: state.spin.swept, id: state.spin.id,
+      uses: state.spin.uses, hits: state.spin.hits, kills: state.spin.kills,
+    } : null,
     effects: state.effects.length,
     events: state.events.length,
-    stats: { maxAlive: state.stats.maxAlive, totalSpawned: state.stats.totalSpawned, totalScheduled: state.stats.totalScheduled },
+    stats: { maxAlive: state.stats.maxAlive, totalSpawned: state.stats.totalSpawned, totalScheduled: state.stats.totalScheduled, dropped: state.stats.dropped || 0 },
   };
 }

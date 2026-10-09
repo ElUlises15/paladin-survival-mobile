@@ -45,14 +45,14 @@ export const CONFIG = deepFreeze({
 
   progression: {
     // xpToNext(level) = round(xpBase * xpGrowth^(level - 1))
-    xpBase: 18,
+    xpBase: 32,
     xpGrowth: 1.22,           // curva suave: un nivel cada ~20 s hasta el minuto 10 (medido con tools/balance-sim.mjs)
     // Mejora pasiva por nivel: fracción del valor BASE sumada a cada stat (todos los stats).
     passivePerLevel: { maxHp: 0.025, attack: 0.022, defense: 0.025, speed: 0.005, attackSpeed: 0.016 },
     // Punto manual: fracción del valor BASE sumada al stat elegido (claramente mayor que la pasiva).
     manualPerPoint: { maxHp: 0.15, attack: 0.12, defense: 0.15, speed: 0.05, attackSpeed: 0.09 },
     pointsPerLevel: 1,
-    levelUpHealFraction: 0.2, // fracción de maxHp curada al subir de nivel (sostenibilidad sin regeneración)
+    levelUpHealFraction: 0.5, // fracción de maxHp curada al subir de nivel (sostenibilidad sin regeneración)
     attributeLabels: {
       maxHp: 'Vida máxima',
       attack: 'Ataque',
@@ -87,7 +87,7 @@ export const CONFIG = deepFreeze({
 
   // Efectos visuales efímeros que produce la simulación (state.effects). Duraciones en segundos.
   effects: {
-    durations: { hit: 0.2, death: 0.45, playerHit: 0.3, levelUp: 0.9, swordUp: 1.2 },
+    durations: { hit: 0.2, death: 0.45, playerHit: 0.3, levelUp: 0.9, swordUp: 1.2, spin: 0.45 },
     maxActive: 300,           // tope duro: si se supera se descarta el más viejo
   },
 
@@ -107,8 +107,8 @@ export const CONFIG = deepFreeze({
     },
     // Escalado individual (moderado). Nivel de referencia = nivel actual del jugador.
     scaling: {
-      hpPerLevel: 0.01,       // se sube de nivel mucho más rápido: escalado por nivel más suave
-      damagePerLevel: 0.012,
+      hpPerLevel: 0.06,       // enemigos más resistentes a medida que subís: la horda se acumula de a poco
+      damagePerLevel: 0.004,  // pero casi no pegan más fuerte (las i-frames limitan el daño por contacto)
       speedPerWave: 0.005,
       speedMaxMult: 1.25,
     },
@@ -117,12 +117,28 @@ export const CONFIG = deepFreeze({
   },
 
   waves: {
-    baseCount: 5,             // enemigos_oleada = round(baseCount * growth^(wave - 1))
-    growth: 1.35,             // pocos al principio, muchísimos después (oleadas más cortas → aceleración)
+    // enemigos_oleada = round((baseCount + linearIncrement * (wave - 1)) * growth^(wave - 1))
+    // Balance oficial: crecimiento LINEAL (growth = 1) → la presión sube en diagonal, sin estallar.
+    baseCount: 10,
+    linearIncrement: 10,       // enemigos extra por oleada
+    growth: 1,                // multiplicador por oleada (1 = sin crecimiento exponencial)
     spawnDuration: 28,        // los spawns de una oleada se reparten en este tiempo (s)
     waveDuration: 30,         // la siguiente oleada empieza a este tiempo (o antes si se limpió)
     clearedDelay: 3,          // si la oleada se limpia antes, esperar esto antes de la siguiente
     maxSimultaneous: 120,     // límite técnico de enemigos vivos; el excedente queda en cola
+    maxQueue: 60,             // tope de la cola de espera: lo que exceda se descarta (stats.dropped)
+  },
+
+  // Habilidad "Giro": barrido circular de 360° que se desbloquea por nivel y mejora sola con más nivel.
+  spin: {
+    unlockLevel: 10,
+    rankLevels: [10, 15, 20, 25, 30],     // nivel del jugador en que se alcanza cada rango (1..5)
+    duration: 0.45,                       // s que dura la vuelta completa (los golpes acompañan al barrido)
+    radiusMult: 1.5,                      // radio = alcance actual de la espada × radiusMult × (1 + radiusPerRank × (rango-1))
+    radiusPerRank: 0.10,
+    damageMult: [1.5, 1.75, 2.0, 2.3, 2.6],   // × daño de un golpe normal (ataque × multiplicador del arma)
+    cooldown: [8, 7.25, 6.5, 5.75, 5],        // s de recarga por rango
+    knockback: 70,                        // px de empuje hacia afuera
   },
 
   score: {

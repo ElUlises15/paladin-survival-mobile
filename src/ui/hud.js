@@ -13,6 +13,7 @@ const IDS = [
   'hud-time', 'hud-kills', 'hud-score', 'hud-wave', 'hud-alive', 'hud-queue', 'hud-wave-left',
   'hud-sword-name', 'hud-sword-tier', 'hud-sword-damage', 'hud-sword-range', 'hud-sword-arc',
   'hud-sword-next-fill', 'hud-sword-next', 'hud-cooldown', 'hud-cooldown-fill', 'hud-cooldown-text',
+  'hud-spin', 'hud-spin-rank', 'hud-spin-cd', 'hud-spin-cd-fill', 'hud-spin-text', 'btn-touch-spin', 'spin-rank-badge',
 ];
 
 let heartUid = 0;
@@ -174,6 +175,39 @@ export function createHud(root = document, config = CONFIG) {
     const isReady = ready >= 1;
     setClass('hud-cooldown', 'is-ready', isReady);
     setText('hud-cooldown-text', isReady ? 'LISTO' : `${Math.max(0, s.cooldownTimer).toFixed(1)}s`);
+
+    // Habilidad Giro (slot de escritorio + botón táctil)
+    const sp = state.spin || { rank: 0 };
+    const spinCfg = config.spin || { unlockLevel: 10, rankLevels: [] };
+    const rank = sp.rank | 0;
+    const maxRank = spinCfg.rankLevels ? spinCfg.rankLevels.length : 5;
+    const unlocked = rank >= 1;
+    setClass('hud-spin', 'is-locked', !unlocked);
+    setHidden('btn-touch-spin', !unlocked);
+    if (!unlocked) {
+      setText('hud-spin-rank', `nivel ${spinCfg.unlockLevel}`);
+      setText('hud-spin-text', 'Bloq.');
+      setScale('hud-spin-cd-fill', 0, 'Y');
+      setClass('hud-spin-cd', 'is-ready', false);
+    } else {
+      setText('hud-spin-rank', `Rango ${rank}/${maxRank}`);
+      setText('spin-rank-badge', rank);
+      const cd = sp.cooldown > 0 ? sp.cooldown : 1;
+      const left = Math.max(0, sp.cooldownTimer || 0);
+      const spinReady = left <= 0 && !(sp.timer > 0);
+      setScale('hud-spin-cd-fill', 1 - left / cd, 'Y');
+      setClass('hud-spin-cd', 'is-ready', spinReady);
+      setText('hud-spin-text', spinReady ? 'LISTO' : `${left.toFixed(1)}s`);
+      setClass('btn-touch-spin', 'is-cooling', !spinReady);
+      const node = el['btn-touch-spin'];
+      if (node) {
+        const f = Math.round((left / cd) * 100) / 100;
+        if (cache.get('spin-cd-var') !== f && node.style && typeof node.style.setProperty === 'function') {
+          cache.set('spin-cd-var', f);
+          node.style.setProperty('--cd', String(f));
+        }
+      }
+    }
   }
 
   function reset() {

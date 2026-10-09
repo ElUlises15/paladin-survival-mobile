@@ -2,7 +2,9 @@
 // Un único loop requestAnimationFrame con acumulador de paso fijo; listeners registrados una sola vez.
 
 import { CONFIG } from './config.js';
-import { createGame, updateGame, chooseAttribute, setPaused, getDiagnostics } from './sim/game.js';
+import {
+  createGame, updateGame, chooseAttribute, setPaused, getDiagnostics, recomputePlayerStats, recomputeSword, xpToNext,
+} from './sim/game.js';
 import { createRenderer } from './render/renderer.js';
 import { createHud } from './ui/hud.js';
 import { createScreens } from './ui/screens.js';
@@ -75,6 +77,7 @@ const touch = createTouchControls({
   joyBase: doc.getElementById('joy-base'),
   joyKnob: doc.getElementById('joy-knob'),
   attackButton: doc.getElementById('btn-touch-attack'),
+  spinButton: doc.getElementById('btn-touch-spin'),
   toArena: toArenaPoint,
   getState: () => app.game,
   onFirstTouch: setTouchMode,
@@ -87,6 +90,7 @@ const input = createInput({
   touch,
   isTyping: () => (typeof screens.isTyping === 'function' ? screens.isTyping() : false),
   onPauseKey: togglePause,
+  isPlaying: () => !!app.game && app.game.mode === 'playing' && screens.current === null,
   onMuteKey: toggleMute,
 });
 
@@ -174,6 +178,7 @@ function startGame() {
   app.gamesStarted += 1;
   input.reset();
   input.setDefaultAim(app.game.player.x + 100, app.game.player.y);
+  clearToasts();
   hud.reset();
   hud.update(app.game);
   screens.show(null);
@@ -191,6 +196,7 @@ function showRotateHint() {
 }
 
 function goToMenu() {
+  clearToasts();
   app.game = null;
   app.screen = 'menu';
   input.reset();
@@ -269,8 +275,43 @@ function handleGameOver(game) {
   });
 }
 
+// ---------- avisos breves (habilidad desbloqueada / mejorada) ----------
+const toastEl = doc.getElementById('toast');
+const pendingToasts = [];
+let toastTimer = 0;
+function spinToast(ev) {
+  const touchUi = root.classList.contains('is-touch');
+  const max = CONFIG.spin.rankLevels.length;
+  if (ev.type === 'abilityUnlock') {
+    return { title: '¡Nueva habilidad: Giro!', sub: touchUi ? 'Tocá el botón redondo arriba de la espada' : 'Apretá Q o 1' };
+  }
+  return { title: `Giro mejorado: rango ${ev.rank}/${max}`, sub: 'Más daño, más radio y menos recarga' };
+}
+function flushToast() {
+  if (!toastEl || !pendingToasts.length || toastTimer) return;
+  if (screens.current !== null) return; // esperar a que se cierre el levelup
+  const t = pendingToasts.shift();
+  toastEl.textContent = t.title;
+  const small = doc.createElement('small');
+  small.textContent = t.sub;
+  toastEl.appendChild(small);
+  toastEl.hidden = true;
+  void toastEl.offsetWidth; // reinicia la animación
+  toastEl.hidden = false;
+  toastTimer = setTimeout(() => { toastEl.hidden = true; toastTimer = 0; flushToast(); }, 3600);
+}
+function clearToasts() {
+  pendingToasts.length = 0;
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = 0;
+  if (toastEl) toastEl.hidden = true;
+}
+
 function processEvents(game) {
-  for (const ev of game.events) audio.play(ev.type);
+  for (const ev of game.events) {
+    audio.play(ev.type);
+    if (ev.type === 'abilityUnlock' || ev.type === 'abilityRankUp') pendingToasts.push(spinToast(ev));
+  }
 }
 
 function step(game) {
@@ -321,6 +362,7 @@ function frame(ts) {
 
   if (mobile.active) mobile.update(game ? game.player : null);
   syncChrome();
+  flushToast();
   renderer.render(game, now);
   if (game) hud.update(game);
 
@@ -373,8 +415,24 @@ if (params.has('debug')) {
     value: Object.freeze({
       levelUp() { const g = app.game; if (g && g.mode === 'playing') { g.player.xp = g.player.xpToNext; return true; } return false; },
       nearDeath() { const g = app.game; if (g && g.mode === 'playing') { g.player.hp = 0.01; return true; } return false; },
+      // Solo para QA: salta directo a un nivel (desbloquea el Giro en 10) sin puntos manuales pendientes.
+      setLevel(n = 10) {
+        const g = app.game;
+        if (!g || g.mode !== 'playing') return false;
+        const p = g.player;
+        p.level = Math.max(1, n | 0); p.xp = 0; p.xpToNext = xpToNext(p.level, CONFIG);
+        recomputePlayerStats(p, CONFIG); recomputeSword(g, CONFIG);
+        p.hp = p.maxHp;
+        return true;
+      },
       // Solo para QA/perf: encola n enemigos extra (respetan el tope de simultáneos) y cura al paladín.
-      horde(n = 120) { const g = app.game; if (g && g.mode === 'playing') { g.spawnQueue += Math.max(0, n | 0); return true; } return false; },
+      horde(n = 120) {
+        const g = app.game;
+        if (!g || g.mode !== 'playing') return false;
+        const max = Number.isFinite(CONFIG.waves.maxQueue) ? CONFIG.waves.maxQueue : Infinity;
+        g.spawnQueue = Math.max(g.spawnQueue, Math.min(Math.max(0, n | 0), max));
+        return true;
+      },
       heal() { const g = app.game; if (g && g.mode === 'playing') { g.player.hp = g.player.maxHp; return true; } return false; },
     }),
   });

@@ -10,6 +10,9 @@ const SOUNDS = {
   swordUpgrade: { type: 'triangle', from: 330, to: 990, dur: 0.5,  gain: 0.08 },
   waveStart:    { type: 'sine',     from: 110, to: 165, dur: 0.4,  gain: 0.06 },
   gameOver:     { type: 'sawtooth', from: 300, to: 50,  dur: 1.0,  gain: 0.09 },
+  spin:         { type: 'triangle', from: 260, to: 720, dur: 0.4,  gain: 0.07 },
+  abilityUnlock: { type: 'triangle', from: 330, to: 1320, dur: 0.7, gain: 0.08 },
+  abilityRankUp: { type: 'triangle', from: 440, to: 1100, dur: 0.5, gain: 0.07 },
 };
 
 export function createAudio(win = globalThis) {

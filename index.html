@@ -33,7 +33,13 @@
       <button type="button" id="btn-touch-attack" class="touch-btn touch-btn--attack" aria-label="Atacar (apunta solo al demonio más cercano)">
         <svg viewBox="0 0 64 64" width="44" height="44" aria-hidden="true"><path d="M50 6 L58 6 L58 14 L26 46 L18 38 Z" fill="#dfe6f0" stroke="#8a96a8" stroke-width="2"/><path d="M14 36 L28 50 L24 54 L10 40 Z" fill="#d4a845"/><path d="M14 46 L6 54 L10 58 L18 50 Z" fill="#6b4a2a"/></svg>
       </button>
+      <button type="button" id="btn-touch-spin" class="touch-btn touch-btn--spin" aria-label="Giro: golpe circular a todos los demonios cercanos" hidden>
+        <span class="spin-cd" aria-hidden="true"></span>
+        <svg viewBox="0 0 64 64" width="38" height="38" aria-hidden="true"><path d="M32 8a24 24 0 1 1-21.6 13.5" fill="none" stroke="#f3d98f" stroke-width="5" stroke-linecap="round"/><path d="M6 12 L12 24 L22 16 Z" fill="#f3d98f"/><path d="M38 20 L44 20 L44 26 L30 40 L24 34 Z" fill="#dfe6f0" stroke="#8a96a8" stroke-width="1.5"/><path d="M22 34 L30 42 L27 45 L19 37 Z" fill="#d4a845"/></svg>
+        <span id="spin-rank-badge" class="spin-rank" aria-hidden="true">1</span>
+      </button>
     </div>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
     <div id="top-buttons">
       <button type="button" id="btn-touch-pause" class="touch-btn touch-btn--small" aria-label="Pausa">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg>
@@ -67,6 +73,7 @@
             <div><dt>Joystick</dt><dd>Apoyá el pulgar a la izquierda y deslizá para moverte</dd></div>
             <div><dt>Espada</dt><dd>Mantené el botón: atacás al demonio más cercano</dd></div>
             <div><dt>Tocá a la derecha</dt><dd>También atacás (sin demonios, hacia donde tocaste)</dd></div>
+            <div><dt>Giro</dt><dd>Desde el nivel 10: botón redondo arriba de la espada</dd></div>
             <div><dt>&#10074;&#10074;</dt><dd>Pausa</dd></div>
           </dl>
           <p class="hint hint--touch">Tip: agregalo a la pantalla de inicio para jugar a pantalla completa.</p>
@@ -74,6 +81,7 @@
             <div><dt>WASD</dt><dd>Mover</dd></div>
             <div><dt>Mouse</dt><dd>Apuntar (si no hay demonios; con demonios mirás al más cercano)</dd></div>
             <div><dt>Click izq.</dt><dd>Atacar con la espada</dd></div>
+            <div><dt>Q / 1</dt><dd>Giro (golpe circular, desde el nivel 10)</dd></div>
             <div><dt>Esc / P</dt><dd>Pausa</dd></div>
             <div><dt>1 – 5</dt><dd>Elegir atributo al subir de nivel</dd></div>
           </dl>
@@ -228,7 +236,11 @@
       </div>
 
       <div class="ability-slots">
-        <div class="ability-slot is-locked"><svg class="lock" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3" fill="none" stroke="currentColor" stroke-width="2.2"/><rect x="5" y="10" width="14" height="11" rx="2" fill="currentColor"/></svg><span class="slot-label">Habilidad futura</span></div>
+        <div id="hud-spin" class="ability-slot ability-slot--spin is-locked">
+          <div class="slot-label">Giro <span id="hud-spin-rank" class="spin-slot-rank">nivel 10</span></div>
+          <div id="hud-spin-cd" class="cooldown"><div id="hud-spin-cd-fill" class="cooldown-fill"></div><span id="hud-spin-text" class="cooldown-text">🔒</span></div>
+          <div class="slot-key">Q / 1</div>
+        </div>
         <div class="ability-slot is-locked"><svg class="lock" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3" fill="none" stroke="currentColor" stroke-width="2.2"/><rect x="5" y="10" width="14" height="11" rx="2" fill="currentColor"/></svg><span class="slot-label">Habilidad futura</span></div>
         <div class="ability-slot is-locked"><svg class="lock" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3" fill="none" stroke="currentColor" stroke-width="2.2"/><rect x="5" y="10" width="14" height="11" rx="2" fill="currentColor"/></svg><span class="slot-label">Habilidad futura</span></div>
       </div>

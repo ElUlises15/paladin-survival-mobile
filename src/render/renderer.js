@@ -22,6 +22,7 @@ import { buildArenaCanvas, buildDamageVignette } from './arena.js';
 export { VARIANT_PALETTES };
 
 const TAU = Math.PI * 2;
+const MAX_LOWFX_HITS = 48;
 
 function clamp01(v) {
   return v < 0 ? 0 : v > 1 ? 1 : v;
@@ -173,8 +174,12 @@ export function createRenderer(canvas, config = CONFIG, options = {}) {
     T(1, 0, 0, 1, 0, 0);
   }
 
+  // Barras de vida en lote (un path por color): tras un Giro puede haber 120 enemigos heridos a la vez.
+  const BAR_FILLS = ['#e8503a', '#f08a24', '#ffd23f'];
+  const barList = [];
   function drawEnemyBars(enemies) {
     T(1, 0, 0, 1, 0, 0);
+    barList.length = 0;
     for (let i = 0; i < enemies.length; i++) {
       const e = enemies[i];
       const hp = num(e.hp);
@@ -182,16 +187,32 @@ export function createRenderer(canvas, config = CONFIG, options = {}) {
       if (!(hp < maxHp) || hp <= 0 || maxHp <= 0) continue;
       const radius = num(e.radius, typeRadius(e.type));
       const w = Math.max(18, radius * 1.8);
-      const h = 4;
-      const bx = Math.round(num(e.x) - w / 2);
-      const by = Math.round(num(e.y) - radius * 1.5 - 7);
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-      ctx.fillRect(bx - 1, by - 1, w + 2, h + 2);
-      ctx.fillStyle = '#4a0d0d';
-      ctx.fillRect(bx, by, w, h);
       const f = clamp01(hp / maxHp);
-      ctx.fillStyle = f > 0.5 ? '#e8503a' : f > 0.25 ? '#f08a24' : '#ffd23f';
-      ctx.fillRect(bx, by, w * f, h);
+      barList.push(Math.round(num(e.x) - w / 2), Math.round(num(e.y) - radius * 1.5 - 7), w, f);
+    }
+    const n = barList.length;
+    if (!n) return;
+    const h = 4;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.beginPath();
+    for (let i = 0; i < n; i += 4) ctx.rect(barList[i] - 1, barList[i + 1] - 1, barList[i + 2] + 2, h + 2);
+    ctx.fill();
+    ctx.fillStyle = '#4a0d0d';
+    ctx.beginPath();
+    for (let i = 0; i < n; i += 4) ctx.rect(barList[i], barList[i + 1], barList[i + 2], h);
+    ctx.fill();
+    for (let c = 0; c < 3; c++) {
+      ctx.fillStyle = BAR_FILLS[c];
+      ctx.beginPath();
+      let any = false;
+      for (let i = 0; i < n; i += 4) {
+        const f = barList[i + 3];
+        const band = f > 0.5 ? 0 : f > 0.25 ? 1 : 2;
+        if (band !== c) continue;
+        ctx.rect(barList[i], barList[i + 1], barList[i + 2] * f, h);
+        any = true;
+      }
+      if (any) ctx.fill();
     }
   }
 
@@ -331,6 +352,49 @@ export function createRenderer(canvas, config = CONFIG, options = {}) {
     return cur;
   }
 
+  /** Giro: estela circular alrededor del paladín. Devuelve el ángulo actual de la hoja o null. */
+  function drawSpin(player, spin, style) {
+    if (!spin || !(num(spin.timer) > 0) || !(num(spin.duration) > 0)) return null;
+    const prog = clamp01(1 - num(spin.timer) / num(spin.duration));
+    const cur = num(spin.startAngle) + TAU * prog;
+    const R = num(spin.radius, 100);
+    const px = num(player.x);
+    const py = num(player.y);
+    const pr = num(player.radius, 18);
+    const fade = prog < 0.8 ? 1 : (1 - prog) / 0.2;
+    T(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = style.trail;
+    if (!lowFx) {
+      // Disco tenue con el radio real del golpe (en celular se omite: es un relleno grande con mezcla aditiva)
+      ctx.globalAlpha = 0.14 * fade;
+      ctx.beginPath();
+      ctx.arc(px, py, R, 0, TAU);
+      ctx.fill();
+    }
+    // Estela de la hoja (hasta ~1,6 rad detrás)
+    const span = Math.min(TAU * prog, 1.6 + TAU * prog * 0.15);
+    const N = lowFx ? 5 : 16;
+    const inner = Math.max(pr * 0.6, R * (lowFx ? 0.55 : 0.3));
+    for (let i = 0; i < N; i++) {
+      const s0 = cur - span + (span * i) / N;
+      const s1 = cur - span + (span * (i + 1)) / N;
+      ctx.globalAlpha = 0.7 * ((i + 1) / N) * ((i + 1) / N) * fade;
+      annulusPath(ctx, px, py, inner, R, s0, s1);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 0.9 * fade;
+    ctx.strokeStyle = style.trailCore;
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(px, py, R, cur - Math.min(span, 2.2), cur);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    return cur;
+  }
+
   function drawPlayer(state, now) {
     const player = state.player;
     if (!player) return;
@@ -354,8 +418,10 @@ export function createRenderer(canvas, config = CONFIG, options = {}) {
     ctx.globalAlpha = 1;
     drawShadow(x, y, radius, 1);
 
-    // Barrido de la espada (debajo del cuerpo)
-    const swingAngle = drawSwing(player, sword, style, now);
+    // Giro (si está activo reemplaza al barrido normal) o barrido de la espada (debajo del cuerpo)
+    const spin = state.spin;
+    const spinAngle = drawSpin(player, spin, style);
+    const swingAngle = spinAngle !== null ? null : drawSwing(player, sword, style, now);
 
     // Transparencia intermitente durante invulnerabilidad
     let alpha = 1;
@@ -365,7 +431,13 @@ export function createRenderer(canvas, config = CONFIG, options = {}) {
     // Espada
     const range = num(sword.range, 72);
     ctx.globalAlpha = alpha;
-    if (swingAngle !== null) {
+    if (spinAngle !== null) {
+      // Espada extendida hasta el radio del giro
+      const reach = num(spin.radius, range);
+      const bx = x + Math.cos(spinAngle) * radius * 0.45;
+      const by = y + Math.sin(spinAngle) * radius * 0.45;
+      drawSwordShape(bx, by, spinAngle, Math.max(range, reach) - radius * 0.45, style, tier, now);
+    } else if (swingAngle !== null) {
       const bx = x + Math.cos(swingAngle) * radius * 0.45;
       const by = y + Math.sin(swingAngle) * radius * 0.45;
       drawSwordShape(bx, by, swingAngle, range - radius * 0.45, style, tier, now);
@@ -375,10 +447,11 @@ export function createRenderer(canvas, config = CONFIG, options = {}) {
     const hurt = num(player.hurtTimer) > 0 && Math.floor(now * 20) % 2 === 0;
     const img = sprites.player(hurt ? 'hurt' : 'normal');
     const by = y + bob * 1.6;
-    drawSprite(img, x, by, facing, radius * (1 + bob * 0.025));
+    // Durante el Giro el cuerpo rota con la hoja (solo visual: player.facing no cambia).
+    drawSprite(img, x, by, spinAngle !== null ? spinAngle : facing, radius * (1 + bob * 0.025));
 
     // Espada en reposo en la mano derecha apuntando a facing
-    if (swingAngle === null) {
+    if (swingAngle === null && spinAngle === null) {
       const c = Math.cos(facing);
       const s = Math.sin(facing);
       const hx = x + c * radius * 0.35 - s * radius * 0.78;
@@ -415,6 +488,13 @@ export function createRenderer(canvas, config = CONFIG, options = {}) {
     const swordStyle = getSwordStyle(Math.floor(num(state.sword?.tier)));
     let playerHitAlpha = 0;
     T(1, 0, 0, 1, 0, 0);
+    // Partículas reducidas (celular): un Giro puede generar ~100 destellos a la vez; se dibujan los 48 más nuevos.
+    let hitSkip = 0;
+    if (lowFx) {
+      let hits = 0;
+      for (let i = 0; i < effects.length; i++) if (effects[i] && effects[i].kind === 'hit') hits++;
+      hitSkip = Math.max(0, hits - MAX_LOWFX_HITS);
+    }
 
     for (let i = 0; i < effects.length; i++) {
       const e = effects[i];
@@ -429,6 +509,7 @@ export function createRenderer(canvas, config = CONFIG, options = {}) {
 
       switch (e.kind) {
         case 'hit': {
+          if (hitSkip > 0) { hitSkip--; break; }
           ctx.globalCompositeOperation = 'lighter';
           // Destello central
           const dot = sprites.glowDot(EFFECT_COLORS.hit);
@@ -523,6 +604,26 @@ export function createRenderer(canvas, config = CONFIG, options = {}) {
             const a = hash01(ix, iy, k + 70) * TAU;
             const d = 16 + hash01(iy, ix, k + 5) * 30;
             ctx.fillRect(x + Math.cos(a) * d, y + Math.sin(a) * d * 0.5 - p * 70, 2.5, 5);
+          }
+          break;
+        }
+        case 'spin': {
+          // Onda expansiva hasta el radio del giro
+          ctx.globalCompositeOperation = 'lighter';
+          const R = num(e.radius, 100);
+          ctx.globalAlpha = 0.8 * q;
+          ctx.strokeStyle = swordStyle.trailCore;
+          ctx.lineWidth = 3 + 5 * q;
+          ctx.beginPath();
+          ctx.arc(x, y, R * (0.35 + 0.65 * p), 0, TAU);
+          ctx.stroke();
+          if (!lowFx) {
+            ctx.fillStyle = swordStyle.trail;
+            for (let k = 0; k < 12; k++) {
+              const a = (k / 12) * TAU + p * 3;
+              const d = R * (0.4 + 0.6 * p);
+              ctx.fillRect(x + Math.cos(a) * d - 1.5, y + Math.sin(a) * d - 1.5, 3, 3);
+            }
           }
           break;
         }

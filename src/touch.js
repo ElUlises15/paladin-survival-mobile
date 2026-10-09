@@ -5,6 +5,7 @@
 //     Pasada la zona muerta, la dirección se manda con magnitud 1 (misma velocidad que WASD).
 //   · Mitad derecha: tocar/mantener apunta a ese punto y ataca (equivalente a click/mantener del mouse).
 //   · Botón de espada: mantener = atacar con auto-apuntado al demonio vivo más cercano.
+//   · Botón de Giro (aparece al desbloquearlo): cada toque pide UN giro (mantener no repite).
 //   · Sin ataque, el paladín mira hacia donde camina.
 // Listeners registrados una sola vez; dispose() los quita.
 
@@ -54,6 +55,7 @@ export function createTouchControls({
   layer,                 // superficie táctil sobre el canvas
   joyBase, joyKnob,      // elementos visuales del joystick (opcionales)
   attackButton,          // botón de ataque con auto-apuntado (opcional)
+  spinButton,            // botón de la habilidad Giro (opcional)
   toArena,               // (clientX, clientY) → { x, y } en coords de arena
   getState = () => null, // GameState actual (solo lectura) para auto-apuntado
   onFirstTouch,          // se llama una vez cuando se detecta uso táctil
@@ -64,7 +66,9 @@ export function createTouchControls({
   let attackId = null;
   let attackLatch = false;   // toque rápido del botón: al menos un golpe
   let touchSeen = false;
-  const out = { moveX: 0, moveY: 0, aimX: 0, aimY: 0, attack: false, hasAim: false };
+  let spinId = null;
+  let spinLatch = false;     // un toque = un pedido de Giro
+  const out = { moveX: 0, moveY: 0, aimX: 0, aimY: 0, attack: false, spin: false, hasAim: false };
   const listeners = [];
 
   function on(target, type, fn, opts) {
@@ -198,7 +202,43 @@ export function createTouchControls({
   on(attackButton, 'touchstart', blockTouch, { passive: false });
   on(attackButton, 'contextmenu', blockTouch);
 
+  // ---------- botón de Giro ----------
+  function onSpinDown(e) {
+    markTouch(e);
+    if (typeof e.preventDefault === 'function') e.preventDefault();
+    if (spinId !== null) return;
+    spinId = e.pointerId;
+    capture(spinButton, e.pointerId);
+    if (spinButton) spinButton.classList.add('is-pressed');
+    spinLatch = true;
+  }
+  function onSpinUp(e) {
+    if (e.pointerId !== spinId) return;
+    spinId = null;
+    if (spinButton) spinButton.classList.remove('is-pressed');
+  }
+  function onSpinCancel(e) {
+    if (e.pointerId !== spinId) return;
+    spinLatch = false;   // el sistema canceló el toque (gesto, rotación): no cuenta como pedido
+    onSpinUp(e);
+  }
+  // Activación sin puntero (Enter/Espacio con foco o tecnologías de asistencia): click con detail 0.
+  // Los clicks que genera un toque/mouse (detail >= 1) se ignoran porque ya contó el pointerdown.
+  function onSpinClick(e) {
+    if (e && e.detail === 0) spinLatch = true;
+  }
+  on(spinButton, 'pointerdown', onSpinDown, { passive: false });
+  on(spinButton, 'pointerup', onSpinUp);
+  on(spinButton, 'pointercancel', onSpinCancel);
+  on(spinButton, 'click', onSpinClick);
+  on(spinButton, 'lostpointercapture', onSpinUp);
+  on(spinButton, 'touchstart', blockTouch, { passive: false });
+  on(spinButton, 'contextmenu', blockTouch);
+
   function reset() {
+    spinId = null;
+    spinLatch = false;
+    if (spinButton) spinButton.classList.remove('is-pressed');
     releaseJoystick();
     aim.id = null;
     aim.latch = false;
@@ -214,6 +254,8 @@ export function createTouchControls({
       out.moveY = joy.vec.y;
       out.attack = false;
       out.hasAim = false;
+      out.spin = spinLatch;
+      spinLatch = false;
       const state = getState();
       const p = state && state.player;
       if (aim.id !== null || aim.latch) {

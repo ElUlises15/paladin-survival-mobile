@@ -5,9 +5,21 @@ No hay victoria: el objetivo es entrar al **Top 10** local. Corre directo en el 
 
 **Jugar:** https://elulises15.github.io/paladin-survival-mobile/
 
-Es la v0.1 del juego adaptada para celular y tablet, con el balance "power fantasy" aprobado por Ulises:
-subís de nivel mucho más seguido (el primero a los ~20-25 s, después uno cada ~20 s), los primeros
-30-60 s son tranquilos y la horda crece rápido hasta un tope de 120 enemigos en pantalla. En la compu se sigue jugando igual que siempre, con teclado y mouse.
+Es la v0.1 del juego adaptada para celular y tablet, con los ajustes aprobados por Ulises:
+subís de nivel seguido (el primero a los ~20-25 s), la horda crece **en diagonal** (cada oleada de 30 s trae
+10 demonios más que la anterior, sin estallar de golpe) hasta un tope de 120 en pantalla, y en el nivel 10
+se desbloquea la habilidad **Giro**. En la compu se sigue jugando igual que siempre, con teclado y mouse.
+
+## Habilidad: Giro
+
+Al llegar al **nivel 10** aparece el aviso *¡Nueva habilidad: Giro!*. El paladín da una vuelta completa
+con la espada y golpea a **todos** los demonios alrededor (con empuje hacia afuera).
+
+- **Radio:** 1,5 × el alcance actual de la espada (crece si la espada mejora).
+- **Daño:** 1,5 × un golpe normal (misma fórmula: ataque × multiplicador del arma), así que escala con tu progreso.
+- **Recarga:** 8 s. Cada toque/tecla dispara un solo giro; mantener no repite.
+- **Mejora sola** en los niveles 15, 20, 25 y 30 (rangos 2 a 5): más daño (hasta 2,6×), +10 % de radio por
+  rango y menos recarga (hasta 5 s). Cada mejora se anuncia en pantalla y el rango se ve en el botón/HUD.
 
 ## En el celu
 
@@ -21,6 +33,7 @@ subís de nivel mucho más seguido (el primero a los ~20-25 s, después uno cada
 | Mover | Apoyá el pulgar en la **mitad izquierda** y deslizá: aparece un joystick donde tocaste |
 | Atacar | Mantené el **botón de la espada** (abajo a la derecha): apunta solo al demonio más cercano |
 | Atacar tocando la pantalla | Tocá o mantené en la **mitad derecha** de la pantalla |
+| Giro (desde el nivel 10) | Tocá el **botón redondo** que aparece arriba de la espada (el barrido oscuro muestra la recarga) |
 | Pausa / sonido | Botones arriba a la derecha (en Android también hay pantalla completa) |
 | Subir de nivel | Tocá el atributo que quieras mejorar |
 | Récords | Al terminar, escribí tu nombre y tocá **Guardar** |
@@ -38,6 +51,7 @@ Si cambiás de app o bloqueás el celu, el juego se pausa solo.
 | Mover | W A S D |
 | Atacar | Click izquierdo (mantener = seguir golpeando); apunta solo al demonio más cercano |
 | Apuntar sin demonios | Mouse |
+| Giro (desde el nivel 10) | Q o 1 |
 | Pausa | Esc o P |
 | Elegir atributo | Click o teclas 1–5 |
 | Silenciar | M |
@@ -60,5 +74,6 @@ Parámetros útiles: `?mobile` / `?desktop` fuerzan el layout, `?nosw` no regist
 - `src/ui/mobile.js`: canvas a pantalla completa con `devicePixelRatio` (tope 2), cámara y safe-area.
 - `sw.js` + `manifest.webmanifest`: PWA liviana. Para publicar cambios, subí `CACHE_VERSION` en `sw.js`
   (si no, quien ya lo abrió sigue viendo la versión cacheada).
-- La simulación (`src/sim`) es la de la v0.1; no se tocaron reglas. El balance vive en `src/config.js`
-  (XP: `xpBase 18`, `xpGrowth 1.22`; oleadas: `growth 1.35`, cada 30 s, tope `maxSimultaneous 120`).
+- La simulación (`src/sim`) es la de la v0.1 más el Giro (`src/sim/spin.js`). El balance vive en `src/config.js`:
+  XP `xpBase 32`, `xpGrowth 1.22`; oleadas lineales `baseCount 10` + `linearIncrement 10` por oleada (`growth 1`),
+  cada 30 s, tope `maxSimultaneous 120` y cola de espera con tope `maxQueue 60`; Giro en `spin`.

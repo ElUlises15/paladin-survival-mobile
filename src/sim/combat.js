@@ -68,7 +68,9 @@ export function updateSword(state, input, dt, config) {
   if (s.cooldownTimer > 0) s.cooldownTimer -= dt;
   if (s.swingTimer > 0) s.swingTimer = Math.max(0, s.swingTimer - dt);
 
-  if (input && input.attack && s.cooldownTimer <= 0) {
+  // Durante el Giro no se inicia un golpe normal (la espada está girando).
+  const spinning = !!(state.spin && state.spin.timer > 0);
+  if (input && input.attack && s.cooldownTimer <= 0 && !spinning) {
     // Arrastre acotado del sobrante para que el ritmo no dependa del tamaño del paso.
     const carry = s.cooldownTimer > -dt ? s.cooldownTimer : 0;
     s.cooldownTimer = s.cooldown + carry;

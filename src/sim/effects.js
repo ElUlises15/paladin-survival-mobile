@@ -1,6 +1,6 @@
 // Efectos visuales efímeros (state.effects). Cada uno tiene t (edad) y duration; se eliminan al expirar.
 
-const DEFAULT_DURATIONS = { hit: 0.2, death: 0.45, playerHit: 0.3, levelUp: 0.9, swordUp: 1.2 };
+const DEFAULT_DURATIONS = { hit: 0.2, death: 0.45, playerHit: 0.3, levelUp: 0.9, swordUp: 1.2, spin: 0.45 };
 const DEFAULT_MAX = 300;
 
 export function addEffect(state, kind, x, y, config, type, variant) {
