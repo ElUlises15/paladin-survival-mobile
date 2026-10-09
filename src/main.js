@@ -110,14 +110,17 @@ function toggleMute() {
   return muted;
 }
 const pauseBtn = doc.getElementById('btn-touch-pause');
-if (pauseBtn) pauseBtn.addEventListener('click', () => togglePause());
-if (muteBtn) muteBtn.addEventListener('click', () => toggleMute());
+// Tras el click se les saca el foco: así Espacio (atacar) nunca los vuelve a "clickear" durante la partida.
+const blurAfter = (btn) => { if (btn && typeof btn.blur === 'function') btn.blur(); };
+if (pauseBtn) pauseBtn.addEventListener('click', () => { blurAfter(pauseBtn); togglePause(); });
+if (muteBtn) muteBtn.addEventListener('click', () => { toggleMute(); blurAfter(muteBtn); });
 const fsBtn = doc.getElementById('btn-fullscreen');
 const canFullscreen = !!(doc.fullscreenEnabled && root.requestFullscreen) && !isIOS(nav);
 if (fsBtn) {
   fsBtn.hidden = !canFullscreen;
   if (canFullscreen) {
     fsBtn.addEventListener('click', () => {
+      blurAfter(fsBtn);
       if (doc.fullscreenElement) doc.exitFullscreen().catch(() => {});
       else root.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
     });

@@ -8,7 +8,7 @@ No hay victoria: el objetivo es entrar al **Top 10** local. Corre directo en el 
 Es la v0.1 del juego adaptada para celular y tablet, con los ajustes aprobados por Ulises:
 subís de nivel seguido (el primero a los ~20-25 s), la horda crece **en diagonal** (cada oleada de 30 s trae
 10 demonios más que la anterior, sin estallar de golpe) hasta un tope de 120 en pantalla, y en el nivel 10
-se desbloquea la habilidad **Giro**. En la compu se sigue jugando igual que siempre, con teclado y mouse.
+se desbloquea la habilidad **Giro**. En la compu se juega con teclado y mouse: **Espacio = atacar** (el click también ataca).
 
 ## Habilidad: Giro
 
@@ -49,7 +49,7 @@ Si cambiás de app o bloqueás el celu, el juego se pausa solo.
 | Acción | Control |
 |---|---|
 | Mover | W A S D |
-| Atacar | Click izquierdo (mantener = seguir golpeando); apunta solo al demonio más cercano |
+| Atacar | **Espacio** (mantener = seguir golpeando); apunta solo al demonio más cercano. El click izquierdo también ataca |
 | Apuntar sin demonios | Mouse |
 | Giro (desde el nivel 10) | Q o 1 |
 | Pausa | Esc o P |
