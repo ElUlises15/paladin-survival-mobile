@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="70%">
+      <stop offset="0" stop-color="#3a1418"/>
+      <stop offset="0.6" stop-color="#17121c"/>
+      <stop offset="1" stop-color="#07060a"/>
+    </radialGradient>
+    <linearGradient id="shield" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f3d98f"/>
+      <stop offset="1" stop-color="#a8873f"/>
+    </linearGradient>
+    <linearGradient id="blade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#b9c3d2"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <circle cx="256" cy="246" r="176" fill="none" stroke="#e8c065" stroke-opacity="0.18" stroke-width="10"/>
+  <!-- escudo -->
+  <path d="M256 92 L386 138 C386 262 340 350 256 410 C172 350 126 262 126 138 Z" fill="url(#shield)" stroke="#5a3d12" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M256 122 L360 158 C358 258 322 330 256 378 C190 330 154 258 152 158 Z" fill="#4a1218"/>
+  <!-- espada -->
+  <path d="M244 132 L268 132 L268 318 L256 342 L244 318 Z" fill="url(#blade)" stroke="#5a6272" stroke-width="4" stroke-linejoin="round"/>
+  <rect x="206" y="312" width="100" height="18" rx="6" fill="#e8c065" stroke="#5a3d12" stroke-width="4" transform="rotate(180 256 321)"/>
+  <rect x="248" y="330" width="16" height="44" rx="4" fill="#6b4a2a"/>
+  <circle cx="256" cy="382" r="13" fill="#e8c065" stroke="#5a3d12" stroke-width="4"/>
+</svg>

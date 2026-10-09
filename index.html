@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Paladin Survival RPG</title>
+  <meta name="description" content="Survival de fantasía oscura: un paladín contra hordas demoníacas. Jugalo en el navegador, también en el celu.">
+  <meta name="theme-color" content="#07060a">
+  <meta name="color-scheme" content="dark">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Paladin">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Escenario lógico 1920×1080, escalado por src/ui/layout.js (letterbox).
+       Arena:       x 24..1464,   y 24..834   (1440×810)
+       Panel:       x 1488..1896, y 24..1056  (408×1032)
+       Barra inf.:  x 24..1464,   y 858..1056 (1440×198) -->
+  <div id="stage">
+    <canvas id="arena" width="1440" height="810" aria-label="Arena de juego"></canvas>
+
+    <!-- ===== Controles táctiles (solo celular/tablet; ver src/touch.js) ===== -->
+    <div id="touch-layer" aria-hidden="true"></div>
+    <div id="touch-ui" aria-hidden="true">
+      <div id="joy-base" class="joy-base"><div id="joy-knob" class="joy-knob"></div></div>
+      <button type="button" id="btn-touch-attack" class="touch-btn touch-btn--attack" aria-label="Atacar (apunta solo al demonio más cercano)">
+        <svg viewBox="0 0 64 64" width="44" height="44" aria-hidden="true"><path d="M50 6 L58 6 L58 14 L26 46 L18 38 Z" fill="#dfe6f0" stroke="#8a96a8" stroke-width="2"/><path d="M14 36 L28 50 L24 54 L10 40 Z" fill="#d4a845"/><path d="M14 46 L6 54 L10 58 L18 50 Z" fill="#6b4a2a"/></svg>
+      </button>
+    </div>
+    <div id="top-buttons">
+      <button type="button" id="btn-touch-pause" class="touch-btn touch-btn--small" aria-label="Pausa">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg>
+      </button>
+      <button type="button" id="btn-touch-mute" class="touch-btn touch-btn--small" aria-label="Silenciar" aria-pressed="false">
+        <svg class="ico-sound" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <svg class="ico-muted" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <button type="button" id="btn-fullscreen" class="touch-btn touch-btn--small" aria-label="Pantalla completa" hidden>
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div id="rotate-hint" class="rotate-hint" role="status" hidden>
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 14a9 9 0 0 0 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Girá el celu para jugar mejor
+    </div>
+
+    <!-- ===== Overlays: exactamente sobre el canvas; solo visibles en estados pausados ===== -->
+    <div id="overlays" hidden>
+
+      <section id="overlay-menu" class="overlay" hidden aria-labelledby="menu-title">
+        <div class="overlay-card overlay-card--wide">
+          <p class="kicker">Fantasía oscura · Supervivencia</p>
+          <h1 id="menu-title" class="game-title">Paladin Survival</h1>
+          <p class="subtitle">La horda demoníaca no se detiene. Tu leyenda, tampoco.</p>
+          <div class="btn-row">
+            <button type="button" id="btn-play" class="btn btn--primary">Jugar</button>
+            <button type="button" id="btn-menu-records" class="btn">Récords</button>
+          </div>
+          <dl class="controls controls--touch">
+            <div><dt>Joystick</dt><dd>Apoyá el pulgar a la izquierda y deslizá para moverte</dd></div>
+            <div><dt>Espada</dt><dd>Mantené el botón: atacás al demonio más cercano</dd></div>
+            <div><dt>Tocá a la derecha</dt><dd>Atacás hacia donde tocaste</dd></div>
+            <div><dt>&#10074;&#10074;</dt><dd>Pausa</dd></div>
+          </dl>
+          <p class="hint hint--touch">Tip: agregalo a la pantalla de inicio para jugar a pantalla completa.</p>
+          <dl class="controls controls--keys">
+            <div><dt>WASD</dt><dd>Mover</dd></div>
+            <div><dt>Mouse</dt><dd>Apuntar</dd></div>
+            <div><dt>Click izq.</dt><dd>Atacar con la espada</dd></div>
+            <div><dt>Esc / P</dt><dd>Pausa</dd></div>
+            <div><dt>1 – 5</dt><dd>Elegir atributo al subir de nivel</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section id="overlay-paused" class="overlay" hidden aria-labelledby="paused-title">
+        <div class="overlay-card">
+          <h2 id="paused-title" class="overlay-title">Pausa</h2>
+          <div class="btn-col">
+            <button type="button" id="btn-resume" class="btn btn--primary">Reanudar</button>
+            <button type="button" id="btn-pause-restart" class="btn">Reiniciar</button>
+            <button type="button" id="btn-pause-menu" class="btn">Menú</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="overlay-levelup" class="overlay" hidden aria-labelledby="levelup-title">
+        <div class="overlay-card overlay-card--wide">
+          <h2 id="levelup-title" class="overlay-title">¡Subiste al nivel <span id="lu-level">2</span>!</h2>
+          <p class="subtitle">Todos tus atributos mejoraron un poco. Elegí dónde invertir tu punto.</p>
+          <p class="points">Puntos pendientes: <strong id="lu-points">1</strong></p>
+          <div class="attr-grid" id="lu-attrs">
+            <button type="button" class="attr-btn" data-attr="maxHp" id="lu-btn-maxHp">
+              <span class="attr-key">1</span><span class="attr-name">Vida máxima</span>
+              <span class="attr-values"><span class="attr-cur" id="lu-cur-maxHp">0</span> → <span class="attr-next" id="lu-next-maxHp">0</span></span>
+            </button>
+            <button type="button" class="attr-btn" data-attr="attack" id="lu-btn-attack">
+              <span class="attr-key">2</span><span class="attr-name">Ataque</span>
+              <span class="attr-values"><span class="attr-cur" id="lu-cur-attack">0</span> → <span class="attr-next" id="lu-next-attack">0</span></span>
+            </button>
+            <button type="button" class="attr-btn" data-attr="defense" id="lu-btn-defense">
+              <span class="attr-key">3</span><span class="attr-name">Defensa</span>
+              <span class="attr-values"><span class="attr-cur" id="lu-cur-defense">0</span> → <span class="attr-next" id="lu-next-defense">0</span></span>
+            </button>
+            <button type="button" class="attr-btn" data-attr="speed" id="lu-btn-speed">
+              <span class="attr-key">4</span><span class="attr-name">Velocidad</span>
+              <span class="attr-values"><span class="attr-cur" id="lu-cur-speed">0</span> → <span class="attr-next" id="lu-next-speed">0</span></span>
+            </button>
+            <button type="button" class="attr-btn" data-attr="attackSpeed" id="lu-btn-attackSpeed">
+              <span class="attr-key">5</span><span class="attr-name">Vel. de ataque</span>
+              <span class="attr-values"><span class="attr-cur" id="lu-cur-attackSpeed">0</span> → <span class="attr-next" id="lu-next-attackSpeed">0</span></span>
+            </button>
+          </div>
+          <p class="hint"><span class="only-keys">Teclas 1–5 o click</span><span class="only-touch">Tocá un atributo</span></p>
+        </div>
+      </section>
+
+      <section id="overlay-gameover" class="overlay" hidden aria-labelledby="gameover-title">
+        <div class="overlay-card overlay-card--wide">
+          <h2 id="gameover-title" class="overlay-title overlay-title--danger">Game Over</h2>
+          <div class="final-stats">
+            <div class="final-stat final-stat--big"><span class="label">Puntaje</span><span class="value" id="go-score">0</span></div>
+            <div class="final-stat"><span class="label">Nivel</span><span class="value" id="go-level">1</span></div>
+            <div class="final-stat"><span class="label">Tiempo</span><span class="value" id="go-time">00:00</span></div>
+            <div class="final-stat"><span class="label">Kills</span><span class="value" id="go-kills">0</span></div>
+            <div class="final-stat"><span class="label">Oleada</span><span class="value" id="go-wave">1</span></div>
+          </div>
+          <form id="go-form" class="name-form" autocomplete="off" novalidate>
+            <label for="go-name">Tu nombre</label>
+            <input id="go-name" name="name" type="text" maxlength="12" spellcheck="false" autocomplete="off" autocapitalize="characters" autocorrect="off" enterkeyhint="done" inputmode="text">
+            <button type="submit" id="btn-save-score" class="btn btn--primary">Guardar</button>
+          </form>
+          <p id="go-status" class="status" aria-live="polite"></p>
+          <div class="btn-row">
+            <button type="button" id="btn-go-restart" class="btn">Reiniciar</button>
+            <button type="button" id="btn-go-menu" class="btn">Menú</button>
+            <button type="button" id="btn-go-records" class="btn">Récords</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="overlay-leaderboard" class="overlay" hidden aria-labelledby="lb-title">
+        <div class="overlay-card overlay-card--arcade">
+          <h2 id="lb-title" class="arcade-title">Hall of Fame · Top 10</h2>
+          <div class="lb-scroll">
+          <table class="lb-table">
+            <thead>
+              <tr><th>#</th><th>Nombre</th><th>Puntaje</th><th>Nivel</th><th>Kills</th><th>Tiempo</th><th>Fecha</th><th>Hora</th></tr>
+            </thead>
+            <tbody id="lb-body"></tbody>
+          </table>
+          </div>
+          <p id="lb-empty" class="lb-empty" hidden>Todavía no hay récords. ¡Sé el primero!</p>
+          <div class="btn-row">
+            <button type="button" id="btn-lb-back" class="btn btn--primary">Volver</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===== Panel lateral (fuera de la arena) ===== -->
+    <aside id="side-panel" aria-label="Estado del paladín">
+      <h2 class="panel-title">Paladín</h2>
+
+      <div class="panel-block panel-block--hp">
+        <div id="hud-hearts" class="hearts" role="img" aria-label="Vida"></div>
+        <div class="hp-line"><span class="label">Vida</span><span id="hud-hp" class="value">100 / 100</span></div>
+        <div class="bar bar--hp"><div id="hud-hp-fill" class="bar-fill"></div></div>
+      </div>
+
+      <div class="panel-block panel-block--level">
+        <div class="stat-row stat-row--level"><span class="label">Nivel</span><span id="hud-level" class="value">1</span></div>
+        <div class="bar bar--xp"><div id="hud-xp-fill" class="bar-fill"></div></div>
+        <div class="xp-line"><span class="label">XP</span><span id="hud-xp" class="value">0 / 20</span></div>
+        <div id="hud-points" class="pending-points" hidden>Puntos sin asignar: <span id="hud-points-value">0</span></div>
+      </div>
+
+      <div class="panel-block panel-block--attrs stats">
+        <div class="stat-row"><span class="label">Ataque</span><span id="hud-attack" class="value">10</span></div>
+        <div class="stat-row"><span class="label">Defensa</span><span id="hud-defense" class="value">10</span></div>
+        <div class="stat-row"><span class="label">Velocidad</span><span id="hud-speed" class="value">240</span></div>
+        <div class="stat-row"><span class="label">Vel. ataque</span><span id="hud-attack-speed" class="value">2.00</span></div>
+      </div>
+
+      <div class="panel-block panel-block--run stats">
+        <div class="stat-row"><span class="label">Tiempo</span><span id="hud-time" class="value mono">00:00</span></div>
+        <div class="stat-row"><span class="label">Kills</span><span id="hud-kills" class="value mono">0</span></div>
+        <div class="stat-row stat-row--score"><span class="label">Puntaje</span><span id="hud-score" class="value mono">0</span></div>
+      </div>
+
+      <div class="panel-block panel-block--wave stats">
+        <div class="stat-row"><span class="label">Oleada</span><span id="hud-wave" class="value mono">1</span></div>
+        <div class="stat-row"><span class="label">Enemigos vivos</span><span id="hud-alive" class="value mono">0</span></div>
+        <div class="stat-row"><span class="label">En cola</span><span id="hud-queue" class="value mono">0</span></div>
+        <div class="stat-row"><span class="label">Por llegar (oleada)</span><span id="hud-wave-left" class="value mono">0</span></div>
+      </div>
+    </aside>
+
+    <!-- ===== Barra inferior (fuera de la arena) ===== -->
+    <footer id="bottom-bar" aria-label="Equipo y habilidades">
+      <div class="weapon-card">
+        <div class="weapon-icon" aria-hidden="true">
+          <svg viewBox="0 0 64 64" width="72" height="72"><path d="M50 6 L58 6 L58 14 L26 46 L18 38 Z" fill="#dfe6f0" stroke="#8a96a8" stroke-width="2"/><path d="M14 36 L28 50 L24 54 L10 40 Z" fill="#d4a845"/><path d="M14 46 L6 54 L10 58 L18 50 Z" fill="#6b4a2a"/></svg>
+        </div>
+        <div class="weapon-info">
+          <div class="weapon-head"><span id="hud-sword-name" class="weapon-name">Espada común</span><span id="hud-sword-tier" class="weapon-tier">Nv 1/4</span></div>
+          <div class="weapon-stats">
+            <span>Daño <strong id="hud-sword-damage">10</strong></span>
+            <span>Alcance <strong id="hud-sword-range">72</strong></span>
+            <span>Arco <strong id="hud-sword-arc">100°</strong></span>
+          </div>
+          <div class="bar bar--sword"><div id="hud-sword-next-fill" class="bar-fill"></div></div>
+          <div id="hud-sword-next" class="weapon-next">Próxima: Espada reforzada · faltan 40 kills</div>
+        </div>
+      </div>
+
+      <div class="cooldown-card">
+        <div class="slot-label">Ataque</div>
+        <div id="hud-cooldown" class="cooldown is-ready"><div id="hud-cooldown-fill" class="cooldown-fill"></div><span id="hud-cooldown-text" class="cooldown-text">LISTO</span></div>
+        <div class="slot-key">Click</div>
+      </div>
+
+      <div class="ability-slots">
+        <div class="ability-slot is-locked"><svg class="lock" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3" fill="none" stroke="currentColor" stroke-width="2.2"/><rect x="5" y="10" width="14" height="11" rx="2" fill="currentColor"/></svg><span class="slot-label">Habilidad futura</span></div>
+        <div class="ability-slot is-locked"><svg class="lock" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3" fill="none" stroke="currentColor" stroke-width="2.2"/><rect x="5" y="10" width="14" height="11" rx="2" fill="currentColor"/></svg><span class="slot-label">Habilidad futura</span></div>
+        <div class="ability-slot is-locked"><svg class="lock" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3" fill="none" stroke="currentColor" stroke-width="2.2"/><rect x="5" y="10" width="14" height="11" rx="2" fill="currentColor"/></svg><span class="slot-label">Habilidad futura</span></div>
+      </div>
+    </footer>
+
+    <pre id="diagnostics" hidden></pre>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
