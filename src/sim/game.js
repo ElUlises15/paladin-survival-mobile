@@ -83,7 +83,7 @@ function step(state, dt, input, config) {
   state.time += dt;
   const p = state.player;
   updatePlayerTimers(p, dt);
-  updateFacing(p, input);
+  updateFacing(p, input, state.enemies);
   movePlayer(p, input, dt, config);
 
   updateSword(state, input, dt, config);

@@ -72,7 +72,31 @@ export function updatePlayerTimers(player, dt) {
   if (player.hurtTimer > 0) player.hurtTimer = Math.max(0, player.hurtTimer - dt);
 }
 
-export function updateFacing(player, input) {
+/** Demonio vivo más cercano a (x, y) o null. Empate → el primero del array (determinista). */
+export function nearestLivingEnemy(enemies, x, y) {
+  if (!Array.isArray(enemies)) return null;
+  let best = null, bestD = Infinity;
+  for (let i = 0; i < enemies.length; i++) {
+    const e = enemies[i];
+    if (!e || !(e.hp > 0)) continue;
+    const dx = e.x - x, dy = e.y - y;
+    const d = dx * dx + dy * dy;
+    if (d < bestD) { bestD = d; best = e; }
+  }
+  return best;
+}
+
+/**
+ * Orientación del paladín: SIEMPRE mira al demonio vivo más cercano (quieto, caminando o atacando;
+ * el barrido de la espada sale en esa dirección). Sin demonios vivos, usa el apunte del input
+ * (mouse en escritorio; dirección de caminata en táctil).
+ */
+export function updateFacing(player, input, enemies = null) {
+  const target = nearestLivingEnemy(enemies, player.x, player.y);
+  if (target) {
+    const tx = target.x - player.x, ty = target.y - player.y;
+    if (tx !== 0 || ty !== 0) { player.facing = Math.atan2(ty, tx); return; }
+  }
   if (!input) return;
   const ax = input.aimX, ay = input.aimY;
   if (typeof ax !== 'number' || typeof ay !== 'number' || !Number.isFinite(ax) || !Number.isFinite(ay)) return;

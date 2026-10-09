@@ -19,10 +19,13 @@ adaptada para celular y tablet. En la compu se sigue jugando igual que siempre, 
 |---|---|
 | Mover | Apoyá el pulgar en la **mitad izquierda** y deslizá: aparece un joystick donde tocaste |
 | Atacar | Mantené el **botón de la espada** (abajo a la derecha): apunta solo al demonio más cercano |
-| Atacar hacia un punto | Tocá o mantené en la **mitad derecha** de la pantalla |
+| Atacar tocando la pantalla | Tocá o mantené en la **mitad derecha** de la pantalla |
 | Pausa / sonido | Botones arriba a la derecha (en Android también hay pantalla completa) |
 | Subir de nivel | Tocá el atributo que quieras mejorar |
 | Récords | Al terminar, escribí tu nombre y tocá **Guardar** |
+
+El paladín **siempre mira al demonio vivo más cercano** (quieto, caminando o atacando), en el celu y en la compu,
+y la espada golpea hacia ahí. Si no hay demonios vivos, mira hacia donde caminás (celu) o hacia el mouse (compu).
 
 Se juega en vertical y en horizontal; en horizontal se ve toda la arena (en vertical la cámara sigue al paladín).
 Si cambiás de app o bloqueás el celu, el juego se pausa solo.
@@ -32,7 +35,8 @@ Si cambiás de app o bloqueás el celu, el juego se pausa solo.
 | Acción | Control |
 |---|---|
 | Mover | W A S D |
-| Apuntar / atacar | Mouse / click izquierdo (mantener = seguir golpeando) |
+| Atacar | Click izquierdo (mantener = seguir golpeando); apunta solo al demonio más cercano |
+| Apuntar sin demonios | Mouse |
 | Pausa | Esc o P |
 | Elegir atributo | Click o teclas 1–5 |
 | Silenciar | M |
